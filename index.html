@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transit Service Watch</title>
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --ink: #1f2933;
+    --ink-soft: #52606d;
+    --line-border: #e4e9ee;
+    --ok: #2e7d5b;
+    --ok-bg: #e8f4ee;
+    --warn: #b4610e;
+    --warn-bg: #fdf1e3;
+    --bad: #b3342d;
+    --bad-bg: #fbeceb;
+    --accent: #33628c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { margin-bottom: 20px; }
+  header h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.02em; }
+  header p { margin: 4px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .demo-note {
+    margin-top: 10px; font-size: 0.8rem; color: var(--ink-soft);
+    background: #eef2f6; border: 1px solid var(--line-border);
+    border-radius: 8px; padding: 8px 12px;
+  }
+  section {
+    background: var(--card); border: 1px solid var(--line-border);
+    border-radius: 14px; padding: 20px; margin-bottom: 20px;
+  }
+  section h2 { margin: 0 0 4px; font-size: 1.15rem; }
+  section .sub { margin: 0 0 16px; color: var(--ink-soft); font-size: 0.88rem; }
+
+  /* Chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 2px solid var(--line-border); border-radius: 999px;
+    background: #fff; padding: 6px 12px; font-size: 0.85rem;
+    cursor: pointer; color: var(--ink-soft);
+    transition: all 0.15s ease;
+  }
+  .chip .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .chip.on { border-color: var(--ink); color: var(--ink); background: #f0f5fa; font-weight: 600; }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .selected-lines { margin-top: 14px; font-size: 0.88rem; color: var(--ink-soft); }
+  .selected-lines strong { color: var(--ink); }
+
+  /* Line list */
+  .line-card {
+    border: 1px solid var(--line-border); border-radius: 12px;
+    padding: 16px; margin-bottom: 16px; background: #fbfcfd;
+  }
+  .line-card:last-child { margin-bottom: 0; }
+  .line-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .line-head .name { font-weight: 700; font-size: 1rem; }
+  .status-pill {
+    margin-left: auto; font-size: 0.75rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .status-pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .status-pill.cut { background: var(--warn-bg); color: var(--warn); }
+  .stations { display: flex; flex-wrap: wrap; gap: 7px; }
+  .station-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1.5px solid; border-radius: 999px;
+    padding: 4px 11px; font-size: 0.8rem; cursor: pointer;
+    background: #fff; transition: all 0.15s ease;
+  }
+  .station-pill .sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .station-pill.origin { box-shadow: 0 0 0 2px var(--accent); font-weight: 700; }
+  .station-pill.dest { box-shadow: 0 0 0 2px var(--warn); font-weight: 700; }
+  .station-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .notice { margin-top: 12px; padding: 10px 13px; border-radius: 10px; font-size: 0.85rem; }
+  .notice.cut { background: var(--warn-bg); border: 1px solid #f0d2ab; color: var(--warn); }
+  .notice.ok { background: var(--ok-bg); border: 1px solid #bfe0cf; color: var(--ok); }
+  .notice strong { display: block; margin-bottom: 2px; }
+  .pick-hint { margin-top: 10px; font-size: 0.8rem; color: var(--ink-soft); }
+
+  /* Journeys */
+  .journey-picks { display: flex; flex-direction: column; gap: 8px; }
+  .journey-btn {
+    display: flex; align-items: center; gap: 12px; text-align: left;
+    border: 1px solid var(--line-border); border-radius: 10px;
+    background: #fff; padding: 10px 14px; cursor: pointer;
+    font-size: 0.88rem; color: var(--ink); transition: all 0.15s ease;
+  }
+  .journey-btn:hover { border-color: var(--accent); }
+  .journey-btn.on { border-color: var(--accent); background: #f0f5fa; }
+  .journey-btn .jdots { display: flex; align-items: center; gap: 3px; flex: none; }
+  .journey-btn .jd { width: 9px; height: 9px; border-radius: 50%; }
+  .journey-btn .jline { width: 14px; height: 3px; }
+  .journey-card {
+    margin-top: 14px; border: 1px solid var(--line-border);
+    border-radius: 12px; padding: 16px; background: #f9fbfc;
+  }
+  .journey-card .route { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+  .journey-card .meta { color: var(--ink-soft); font-size: 0.85rem; }
+  .journey-card .time {
+    margin-top: 10px; font-size: 1.5rem; font-weight: 700; color: var(--accent);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .journey-card .time small { font-size: 0.85rem; font-weight: 500; color: var(--ink-soft); }
+  .journey-card .snap { margin-top: 6px; font-size: 0.78rem; color: var(--ink-soft); }
+  .journey-card.unavailable { background: var(--bad-bg); border-color: #eccfcd; }
+  .journey-card.unavailable .time { color: var(--bad); font-size: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Transit Service Watch</h1>
+    <p>Klang Valley rail at a glance — sample disruptions, cut-short services and journey times.</p>
+    <div class="demo-note">Demo app with fictional sample data only — no live or real transit information. Nothing is saved.</div>
+  </header>
+
+  <section id="section-lines">
+    <h2>1. Choose your lines</h2>
+    <p class="sub">Tap chips to select or deselect. Multiple lines can be selected.</p>
+    <div class="chips" id="chips"></div>
+    <p class="selected-lines" id="selected-lines"></p>
+  </section>
+
+  <section id="section-status">
+    <h2>2. Line &amp; station status</h2>
+    <p class="sub">Solid coloured stations are running. Faded grey stations are cut short or suspended. Tap a start station, then an end station on the same line to build a journey.</p>
+    <div id="line-list"></div>
+  </section>
+
+  <section id="section-journey">
+    <h2>3. Journey travel time</h2>
+    <p class="sub">Pick a sample journey below, or choose your own start and end stations in section 2.</p>
+    <div class="journey-picks" id="journey-picks"></div>
+    <div id="journey-detail"></div>
+  </section>
+</div>
+
+<script>
+// ---------- Sample data (fictional) ----------
+// minPerStop: sample minutes per station interval used for estimates
+const LINES = [
+  {
+    id: "kelana", name: "LRT Kelana Jaya Line", color: "#d0342c", status: "normal",
+    minPerStop: 2.2,
+    notice: "Normal service on the whole line between Gombak and Putra Heights.",
+    stations: [
+      { n: "Gombak", run: true }, { n: "Setiawangsa", run: true },
+      { n: "Dato' Keramat", run: true }, { n: "KLCC", run: true },
+      { n: "Kampung Baru", run: true }, { n: "Masjid Jamek", run: true },
+      { n: "Pasar Seni", run: true }, { n: "KL Sentral", run: true },
+      { n: "Bangsar", run: true }, { n: "Abdullah Hukum", run: true },
+      { n: "Universiti", run: true }, { n: "Taman Jaya", run: true },
+      { n: "Kelana Jaya", run: true }, { n: "Lembah Subang", run: true },
+      { n: "USJ 7", run: true }, { n: "Putra Heights", run: true }
+    ]
+  },
+  {
+    id: "ampang", name: "LRT Ampang Line", color: "#e07b1f", status: "cut-short",
+    minPerStop: 2.4,
+    notice: "Cut short between Chan Sow Lin and Ampang due to a signalling fault on the Ampang branch. Trains run only between Sentul Timur and Chan Sow Lin; the Ampang branch (Maluri, Ampang) is suspended.",
+    stations: [
+      { n: "Sentul Timur", run: true }, { n: "PWTC", run: true },
+      { n: "Titiwangsa", run: true }, { n: "Hang Tuah", run: true },
+      { n: "Pudu", run: true }, { n: "Chan Sow Lin", run: true },
+      { n: "Maluri", run: false }, { n: "Ampang", run: false }
+    ]
+  },
+  {
+    id: "sripetaling", name: "LRT Sri Petaling Line", color: "#8c5a2b", status: "normal",
+    minPerStop: 2.3,
+    notice: "Normal service on the whole line between Sentul Timur and Sri Petaling.",
+    stations: [
+      { n: "Sentul Timur", run: true }, { n: "PWTC", run: true },
+      { n: "Titiwangsa", run: true }, { n: "Hang Tuah", run: true },
+      { n: "Pudu", run: true }, { n: "Chan Sow Lin", run: true },
+      { n: "Cheras", run: true }, { n: "Bukit Jalil", run: true },
+      { n: "Sri Petaling", run: true }
+    ]
+  },
+  {
+    id: "kajang", name: "MRT Kajang Line", color: "#2e7d5b", status: "normal",
+    minPerStop: 2.6,
+    notice: "Normal service on the whole line between Sungai Buloh and Kajang.",
+    stations: [
+      { n: "Sungai Buloh", run: true }, { n: "Kwasa Sentral", run: true },
+      { n: "Kota Damansara", run: true }, { n: "Bandar Utama", run: true },
+      { n: "Semantan", run: true }, { n: "Muzium Negara", run: true },
+      { n: "Pasar Seni", run: true }, { n: "Merdeka", run: true },
+      { n: "Bukit Bintang", run: true }, { n: "Maluri", run: true },
+      { n: "Bandar Tasik Selatan", run: true }, { n: "Kajang", run: true }
+    ]
+  },
+  {
+    id: "putrajaya", name: "MRT Putrajaya Line", color: "#d4a017", status: "normal",
+    minPerStop: 2.5,
+    notice: "Normal service on the whole line between Kwasa Damansara and Putrajaya Sentral.",
+    stations: [
+      { n: "Kwasa Damansara", run: true }, { n: "Kota Damansara", run: true },
+      { n: "Bandar Utama", run: true }, { n: "Pusat Bandar Damansara", run: true },
+      { n: "Kampung Baru", run: true }, { n: "KLCC", run: true },
+      { n: "Conlay", run: true }, { n: "TRX", run: true },
+      { n: "Chan Sow Lin", run: true }, { n: "Seri Kembangan", run: true },
+      { n: "Putrajaya Sentral", run: true }
+    ]
+  },
+  {
+    id: "seremban", name: "KTM Komuter — Seremban Line", color: "#33628c", status: "cut-short",
+    minPerStop: 4.5,
+    notice: "Cut short between KL Sentral and Batu Caves due to track maintenance at Sentul. Trains turn back at KL Sentral; the Batu Caves and Sentul stations are not served this hour.",
+    stations: [
+      { n: "Batu Caves", run: false }, { n: "Sentul", run: false },
+      { n: "KL Sentral", run: true }, { n: "Angkasapuri", run: true },
+      { n: "Salak Selatan", run: true }, { n: "Bandar Tasik Selatan", run: true },
+      { n: "Kajang", run: true }, { n: "UKM", run: true },
+      { n: "Seremban", run: true }
+    ]
+  },
+  {
+    id: "portklang", name: "KTM Komuter — Port Klang Line", color: "#1f4e79", status: "normal",
+    minPerStop: 4.8,
+    notice: "Normal service between Port Klang and KL Sentral.",
+    stations: [
+      { n: "Port Klang", run: true }, { n: "Klang", run: true },
+      { n: "Shah Alam", run: true }, { n: "Subang Jaya", run: true },
+      { n: "Angkasapuri", run: true }, { n: "KL Sentral", run: true }
+    ]
+  },
+  {
+    id: "kliax", name: "ERL KLIA Express", color: "#7b4fa6", status: "normal",
+    minPerStop: 14,
+    notice: "Normal non-stop service between KL Sentral, KLIA and klia2.",
+    stations: [
+      { n: "KL Sentral", run: true }, { n: "KLIA", run: true }, { n: "klia2", run: true }
+    ]
+  },
+  {
+    id: "kliat", name: "ERL KLIA Transit", color: "#a680c9", status: "normal",
+    minPerStop: 8,
+    notice: "Normal service with stops at Bandar Tasik Selatan, Putrajaya & Cyberjaya, Salak Tinggi, KLIA and klia2.",
+    stations: [
+      { n: "KL Sentral", run: true }, { n: "Bandar Tasik Selatan", run: true },
+      { n: "Putrajaya & Cyberjaya", run: true }, { n: "Salak Tinggi", run: true },
+      { n: "KLIA", run: true }, { n: "klia2", run: true }
+    ]
+  },
+  {
+    id: "skypark", name: "KTM Skypark Link", color: "#3a8c7a", status: "normal",
+    minPerStop: 11,
+    notice: "Normal service between KL Sentral and Skypark Terminal (Subang). Weekend-only service in this scenario.",
+    stations: [
+      { n: "KL Sentral", run: true }, { n: "Subang Jaya", run: true },
+      { n: "Skypark Terminal", run: true }
+    ]
+  },
+  {
+    id: "monorail", name: "KL Monorail", color: "#2ea8c9", status: "normal",
+    minPerStop: 2.0,
+    notice: "Normal service between KL Sentral and Titiwangsa.",
+    stations: [
+      { n: "KL Sentral", run: true }, { n: "Tun Sambanthan", run: true },
+      { n: "Hang Tuah", run: true }, { n: "Imbi", run: true },
+      { n: "Bukit Bintang", run: true }, { n: "Raja Chulan", run: true },
+      { n: "Bukit Nanas", run: true }, { n: "Chow Kit", run: true },
+      { n: "Titiwangsa", run: true }
+    ]
+  },
+  {
+    id: "brt", name: "BRT Sunway Line", color: "#e07a9c", status: "normal",
+    minPerStop: 3.2,
+    notice: "Normal loop service: USJ 7 — Sunway Lagoon — Sunway South Quay — USJ 7.",
+    loop: true,
+    stations: [
+      { n: "USJ 7", run: true }, { n: "Sunway Lagoon", run: true },
+      { n: "Sunway South Quay", run: true }
+    ]
+  }
+];
+
+const JOURNEYS = [
+  { id: "j1", label: "Maluri → Bukit Bintang (LRT + MRT)", lineIds: ["ampang", "kajang"],
+    from: "Maluri", to: "Bukit Bintang", minutes: 24,
+    note: "Includes 1 change along the Hang Tuah / Bukit Bintang corridor.",
+    snapshot: "Snapshot: this morning, normal frequency." },
+  { id: "j2", label: "Bandar Tasik Selatan → KL Sentral (Komuter)", lineIds: ["seremban"],
+    from: "Bandar Tasik Selatan", to: "KL Sentral", minutes: 19,
+    note: "Direct Komuter service on the running section.",
+    snapshot: "Snapshot: current hour, trains turning back at KL Sentral." },
+  { id: "j3", label: "Ampang → Sentul Timur (LRT Ampang)", lineIds: ["ampang"],
+    from: "Ampang", to: "Sentul Timur", minutes: null,
+    note: "Origin is in the suspended section." },
+  { id: "j4", label: "KL Sentral → KLIA (KLIA Express)", lineIds: ["kliax"],
+    from: "KL Sentral", to: "KLIA", minutes: 28,
+    note: "Non-stop express to the airport.",
+    snapshot: "Snapshot: midday, every 30 minutes in this scenario." },
+  { id: "j5", label: "KLCC → Kajang (MRT Kajang Line)", lineIds: ["kajang"],
+    from: "KLCC", to: "Kajang", minutes: 31,
+    note: "Direct MRT service, no change needed.",
+    snapshot: "Snapshot: afternoon, normal frequency." },
+  { id: "j6", label: "Batu Caves → KL Sentral (Komuter)", lineIds: ["seremban"],
+    from: "Batu Caves", to: "KL Sentral", minutes: null,
+    note: "Origin is in the suspended section." },
+  { id: "j7", label: "Gombak → Masjid Jamek (LRT Kelana Jaya)", lineIds: ["kelana"],
+    from: "Gombak", to: "Masjid Jamek", minutes: 12,
+    note: "Direct LRT service.",
+    snapshot: "Snapshot: this morning, normal frequency." },
+  { id: "j8", label: "KL Sentral → Skypark Terminal (Skypark Link)", lineIds: ["skypark"],
+    from: "KL Sentral", to: "Skypark Terminal", minutes: 34,
+    note: "Via Subang Jaya. Weekend-only service in this scenario.",
+    snapshot: "Snapshot: weekend schedule in this scenario." }
+];
+
+// ---------- State ----------
+let selected = new Set(["ampang", "kajang", "seremban"]);
+let activeJourney = "j1";
+// station picks: {lineId, index} | null — first pick is the start, second is the end
+let pickStart = null;
+let pickEnd = null;
+
+// ---------- Helpers ----------
+function stopsBetween(line, a, b) {
+  const ia = line.stations.findIndex(s => s.n === a);
+  const ib = line.stations.findIndex(s => s.n === b);
+  if (ia < 0 || ib < 0) return null;
+  if (line.loop) {
+    const n = line.stations.length;
+    const fwd = (ib - ia + n) % n;
+    const rev = (ia - ib + n) % n;
+    return Math.min(fwd, rev);
+  }
+  return Math.abs(ib - ia);
+}
+
+function customJourney() {
+  if (!pickStart || !pickEnd || pickStart.lineId !== pickEnd.lineId) return null;
+  const line = LINES.find(l => l.id === pickStart.lineId);
+  const from = line.stations[pickStart.index].n;
+  const to = line.stations[pickEnd.index].n;
+  const stops = stopsBetween(line, from, to);
+  const path = line.stations
+    .slice(Math.min(line.stations.findIndex(s => s.n === from), line.stations.findIndex(s => s.n === to)),
+           Math.max(line.stations.findIndex(s => s.n === from), line.stations.findIndex(s => s.n === to)) + 1);
+  const suspended = path.some(s => !s.run);
+  const minutes = suspended ? null : Math.max(3, Math.round(stops * line.minPerStop));
+  return { line, from, to, stops, suspended, minutes };
+}
+
+// ---------- Section 1: chips ----------
+const chipsEl = document.getElementById("chips");
+const selectedEl = document.getElementById("selected-lines");
+
+function renderChips() {
+  chipsEl.innerHTML = "";
+  LINES.forEach(l => {
+    const b = document.createElement("button");
+    b.className = "chip" + (selected.has(l.id) ? " on" : "");
+    b.innerHTML = `<span class="dot" style="background:${l.color}"></span>${l.name}`;
+    b.setAttribute("aria-pressed", selected.has(l.id));
+    b.onclick = () => {
+      if (selected.has(l.id)) selected.delete(l.id); else selected.add(l.id);
+      // drop picks on lines no longer selected
+      if (pickStart && !selected.has(pickStart.lineId)) pickStart = null;
+      if (pickEnd && !selected.has(pickEnd.lineId)) pickEnd = null;
+      renderAll();
+    };
+    chipsEl.appendChild(b);
+  });
+  const names = LINES.filter(l => selected.has(l.id)).map(l => l.name);
+  selectedEl.innerHTML = names.length
+    ? `Selected lines (${names.length}): <strong>${names.join(", ")}</strong>`
+    : `No lines selected — pick at least one above to see status and journeys.`;
+}
+
+// ---------- Section 2: line list with selectable stations ----------
+function onStationClick(lineId, index) {
+  const hit = { lineId, index };
+  const sameStart = pickStart && pickStart.lineId === lineId && pickStart.index === index;
+  const sameEnd = pickEnd && pickEnd.lineId === lineId && pickEnd.index === index;
+  if (pickStart && pickEnd) { pickStart = hit; pickEnd = null; }        // full pair -> begin a new pair
+  else if (sameStart) { pickStart = pickEnd; pickEnd = null; }          // re-tap start -> keep only end as new start
+  else if (sameEnd) { pickEnd = null; }                                 // re-tap end -> clear end
+  else if (!pickStart) { pickStart = hit; }                             // set start
+  else if (pickStart.lineId !== lineId) { pickStart = hit; pickEnd = null; } // other line -> new start
+  else { pickEnd = hit; }                                               // set end
+  renderAll();
+}
+
+function renderLineList() {
+  const el = document.getElementById("line-list");
+  el.innerHTML = "";
+  const shown = LINES.filter(l => selected.has(l.id));
+  if (!shown.length) {
+    el.innerHTML = `<p class="sub">No lines selected. Select a line above to see its stations and service state.</p>`;
+    return;
+  }
+  shown.forEach(l => {
+    const card = document.createElement("div");
+    card.className = "line-card";
+    const pill = l.status === "cut-short"
+      ? `<span class="status-pill cut">Cut short</span>`
+      : `<span class="status-pill ok">Normal</span>`;
+    const picksHere = pickStart && pickStart.lineId === l.id;
+    let hint = "Tap a station to set your start, then tap another on the same line to set your end.";
+    if (picksHere && !pickEnd) hint = `Start: <strong>${l.stations[pickStart.index].n}</strong> — now tap your end station on this line.`;
+    else if (picksHere && pickEnd) hint = `Start: <strong>${l.stations[pickStart.index].n}</strong> → End: <strong>${l.stations[pickEnd.index].n}</strong>. Tap any station to start a new pair.`;
+    else if (pickStart) hint = `Start is set on another line — tap a station here to start over on ${l.name}.`;
+    card.innerHTML = `
+      <div class="line-head">
+        <span style="color:${l.color};font-size:1.1rem">●</span>
+        <span class="name">${l.name}</span>${pill}
+      </div>
+      <div class="stations"></div>
+      <div class="notice ${l.status === "cut-short" ? "cut" : "ok"}">
+        <strong>${l.status === "cut-short" ? "Disruption notice" : "Service normal"}</strong>
+        ${l.notice}
+      </div>
+      <div class="pick-hint">${hint}</div>`;
+    const st = card.querySelector(".stations");
+    l.stations.forEach((s, i) => {
+      const p = document.createElement("button");
+      p.className = "station-pill";
+      const isStart = pickStart && pickStart.lineId === l.id && pickStart.index === i;
+      const isEnd = pickEnd && pickEnd.lineId === l.id && pickEnd.index === i;
+      if (isStart) p.classList.add("origin");
+      if (isEnd) p.classList.add("dest");
+      const tag = isStart ? "Start: " : isEnd ? "End: " : "";
+      p.style.borderColor = s.run ? l.color : "#c3ccd4";
+      p.style.color = s.run ? "inherit" : "#9aa4ae";
+      p.style.borderStyle = s.run ? "solid" : "dashed";
+      p.style.background = s.run ? "#fff" : "#f2f4f6";
+      p.innerHTML = `<span class="sdot" style="background:${s.run ? l.color : "#b9c2cb"}"></span>${tag}${s.n}${s.run ? "" : " ✕"}`;
+      p.title = s.run ? `${s.n} — running. ${isStart ? "Current start." : isEnd ? "Current end." : "Tap to choose."}` : `${s.n} — suspended (cut short)`;
+      p.onclick = () => onStationClick(l.id, i);
+      st.appendChild(p);
+    });
+    el.appendChild(card);
+  });
+}
+
+// ---------- Section 3: journeys ----------
+function journeyCardHTML(title, meta, minutes, snapshot) {
+  if (minutes === null) {
+    return `<div class="journey-card unavailable">
+      <div class="route">${title}</div>
+      <div class="time">Not available</div>
+      <div class="meta">${meta} The affected section is cut short by the current disruption, so no travel time estimate can be shown.</div>
+    </div>`;
+  }
+  return `<div class="journey-card">
+    <div class="route">${title}</div>
+    <div class="meta">${meta}</div>
+    <div class="time">~${minutes} min <small>current estimate</small></div>
+    <div class="snap">${snapshot} Sample figure only — not a real timetable.</div>
+  </div>`;
+}
+
+function renderJourneys() {
+  const picks = document.getElementById("journey-picks");
+  const detail = document.getElementById("journey-detail");
+  const visible = JOURNEYS.filter(j => j.lineIds.some(id => selected.has(id)));
+  picks.innerHTML = "";
+
+  // Custom journey from station picks first
+  let customHTML = "";
+  const cj = customJourney();
+  if (cj) {
+    const via = cj.line.loop ? " (loop service)" : "";
+    customHTML = journeyCardHTML(
+      `${cj.from} → ${cj.to} (${cj.line.name}${via})`,
+      `${cj.stops} station stop${cj.stops === 1 ? "" : "s"} on the selected line.`,
+      cj.minutes,
+      "Snapshot: built from your station selection just now."
+    );
+  } else if (pickStart && !pickEnd) {
+    const l = LINES.find(x => x.id === pickStart.lineId);
+    customHTML = `<div class="journey-card">
+      <div class="route">${l.stations[pickStart.index].n} — start set on ${l.name}</div>
+      <div class="meta">Now tap your end station on the same line in section 2 to see the travel time estimate.</div>
+    </div>`;
+  }
+
+  if (!visible.length && !customHTML) {
+    picks.innerHTML = `<p class="sub">No sample journeys for the selected lines. Select a line above.</p>`;
+    detail.innerHTML = "";
+    return;
+  }
+  if (!visible.some(j => j.id === activeJourney)) activeJourney = visible.length ? visible[0].id : null;
+
+  visible.forEach(j => {
+    const b = document.createElement("button");
+    b.className = "journey-btn" + (j.id === activeJourney ? " on" : "");
+    b.innerHTML = `
+      <span class="jdots">${j.lineIds.map(id => {
+        const l = LINES.find(x => x.id === id);
+        return `<span class="jd" style="background:${l.color}"></span><span class="jline" style="background:${l.color}"></span>`;
+      }).join("")}</span>
+      <span>${j.label}</span>`;
+    b.onclick = () => { activeJourney = j.id; renderJourneys(); };
+    picks.appendChild(b);
+  });
+
+  let sampleHTML = "";
+  if (activeJourney) {
+    const j = JOURNEYS.find(x => x.id === activeJourney);
+    sampleHTML = journeyCardHTML(`${j.from} → ${j.to}`, j.note, j.minutes, j.snapshot || "Sample scenario.");
+  }
+  detail.innerHTML = customHTML + sampleHTML;
+}
+
+function renderAll() {
+  renderChips();
+  renderLineList();
+  renderJourneys();
+}
+renderAll();
+</script>
+</body>
+</html>
