@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transit Service Watch</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Transit Service Watch</h1>
+    <p>Klang Valley rail journey planner — sample disruptions, cut-short services, distances and times.</p>
+    <div class="demo-note">Demo app with fictional sample data only — no live or real transit information. Nothing is saved.</div>
+  </header>
+
+  <section id="section-plan">
+    <h2>1. Plan your journey</h2>
+    <p class="sub">Choose a starting line and station, then an ending line and station. Then press Check to see the shortest available route — it may combine lines through interchanges (◎). Press Map to view the full network map.</p>
+    <div class="actions" style="margin-bottom:14px;">
+      <button class="btn-ghost" id="btn-map">Map</button>
+    </div>
+    <div class="step" id="step-startline"></div>
+    <div class="step" id="step-startstation"></div>
+    <div class="step" id="step-endline"></div>
+    <div class="step" id="step-endstation"></div>
+    <div class="actions">
+      <button class="btn-primary" id="btn-check">Check</button>
+      <button class="btn-ghost" id="btn-reset">Reset</button>
+    </div>
+    <p class="actions-note" id="actions-note"></p>
+  </section>
+
+  <div class="modal-backdrop" id="map-backdrop" hidden>
+    <div class="modal modal-map" role="dialog" aria-modal="true" aria-labelledby="map-modal-title">
+      <button class="close-x" id="map-modal-close" aria-label="Close">✕</button>
+      <h3 id="map-modal-title">Klang Valley Integrated Transit Map</h3>
+      <p class="sub">Sample network alignment map — not to scale, fictional sample data only.</p>
+      <div class="map-scroll">
+        <img src="img/network-map.png" alt="Klang Valley integrated transit network map">
+      </div>
+    </div>
+  </div>
+
+  <section id="section-status">
+    <h2>2. Service status of your lines</h2>
+    <p class="sub">Solid coloured stations are running. Faded grey stations are cut short or suspended. ◎ marks an interchange.</p>
+    <div id="line-list"></div>
+  </section>
+
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="close-x" id="modal-close" aria-label="Close">✕</button>
+      <h3 id="modal-title"></h3>
+      <p class="sub" id="modal-sub"></p>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js?v=2"></script>
+</body>
+</html>
